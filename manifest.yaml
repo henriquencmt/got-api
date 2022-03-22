@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: got-api-back
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: got-api-back
+  template:
+    metadata:
+      labels:
+        app: got-api-back
+    spec:
+      nodeSelector:
+        "beta.kubernetes.io/os": linux
+      containers:
+      - name: got-api-back
+        image: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "secret"
+        ports:
+        - containerPort: 5432
+          name: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: got-api-back
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: got-api-back
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: got-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: got-api
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5 
+  template:
+    metadata:
+      labels:
+        app: got-api
+    spec:
+      nodeSelector:
+        "beta.kubernetes.io/os": linux
+      containers:
+      - name: got-api
+        image: henriquencmtacr.azurecr.io/got-api
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: 500m
+        env:
+        - name: DB_HOST
+          value: "got-api-back"
+        - name: DB_PASSWORD
+          value: "secret"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: got-api
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: got-api
