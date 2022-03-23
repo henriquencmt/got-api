@@ -3,9 +3,23 @@ from typing import List
 
 import pytest
 
-from src import crud, schemas
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+from src import crud, models, schemas
 from src.database import SessionLocal
-from src.models import User, House, Character
+
+
+TEST_DATABASE_URL = "sqlite:///./test.db"
+engine = create_engine(
+    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+models.Base.metadata.create_all(bind=engine)
 
 
 @contextmanager
@@ -37,7 +51,7 @@ def house():
 
 def test_create_user(user):
     _, test_user = user
-    assert isinstance(test_user, User)
+    assert isinstance(test_user, models.User)
     assert test_user.is_active == True
     assert test_user.hashed_password == 'secretnotreallyhashed'
 
@@ -61,7 +75,7 @@ def test_read_users(user):
     db, _ = user
     db_users = crud.read_users(db)
     assert isinstance(db_users, List)
-    assert isinstance(db_users[0], User)
+    assert isinstance(db_users[0], models.User)
 
 
 def test_delete_user(user):
@@ -72,7 +86,7 @@ def test_delete_user(user):
 
 def test_create_house(house):
     _, test_house = house
-    assert isinstance(test_house, House)
+    assert isinstance(test_house, models.House)
     assert isinstance(test_house.members, List)
     assert test_house.name == 'Test House'
     assert test_house.words == 'Words'
@@ -83,8 +97,8 @@ def test_create_house_member(house):
     db, test_house = house
     character = schemas.CharacterBase(name='Test Character')
     test_character = crud.create_house_member(db, character, test_house.id)
-    assert isinstance(test_character, Character)
-    assert isinstance(test_character.house, House)
+    assert isinstance(test_character, models.Character)
+    assert isinstance(test_character.house, models.House)
     assert test_character.name == 'Test Character'
     assert test_character.house.name == 'Test House'
 
