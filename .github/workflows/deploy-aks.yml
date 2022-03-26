@@ -14,31 +14,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@main
-    
-    # Connect to Azure Container Registry (ACR)
-    - uses: azure/docker-login@v1
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Test with pytest
+      run: |
+        make test
+
+    - name: Connect to ACR
+      uses: azure/docker-login@v1
       with:
         login-server: ${{ env.REGISTRY_NAME }}.azurecr.io
         username: ${{ secrets.REGISTRY_USERNAME }} 
         password: ${{ secrets.REGISTRY_PASSWORD }}
     
-    # Container build and push to a Azure Container Registry (ACR)
-    - run: |
+    - name: Container build and push to ACR
+      run: |
         echo Build and push Docker image
         sed -i 's/$PORT/80/' Dockerfile
         docker build . -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.APP_NAME }}:${{ github.sha }}
         docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.APP_NAME }}:${{ github.sha }}
       working-directory: .
     
-    # Set the target Azure Kubernetes Service (AKS) cluster. 
-    - uses: azure/aks-set-context@v1
+    - name: Set the target AKS cluster
+      uses: azure/aks-set-context@v1
       with:
         creds: '${{ secrets.AZURE_CREDENTIALS }}'
         cluster-name: ${{ secrets.CLUSTER_NAME }}
         resource-group: ${{ secrets.CLUSTER_RESOURCE_GROUP }}
        
-    # Create image pull secret for ACR
-    - uses: azure/k8s-create-secret@v1
+    - name: Create image pull secret for ACR
+      uses: azure/k8s-create-secret@v1
       with:
         container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
         container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
@@ -46,8 +60,8 @@ jobs:
         secret-name: ${{ secrets.SECRET }}
         arguments: --force true
     
-    # Deploy app to AKS
-    - uses: azure/k8s-deploy@v1
+    - name: Deploy app to AKS
+      uses: azure/k8s-deploy@v1
       with:
         manifests: |
           ${{ github.workspace }}/manifest.yaml
