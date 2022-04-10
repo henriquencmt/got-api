@@ -3,21 +3,9 @@ from typing import List
 
 import pytest
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
 from src import crud, models, schemas
-from src.database import SessionLocal
+from src.database import engine, SessionLocal
 
-
-TEST_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(
-    TEST_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -53,7 +41,7 @@ def test_create_user(user):
     _, test_user = user
     assert isinstance(test_user, models.User)
     assert test_user.is_active == True
-    assert test_user.hashed_password == 'secretnotreallyhashed'
+    assert crud.verify_password('secret', test_user.hashed_password) == True
 
 
 def test_read_user(user):
@@ -61,14 +49,14 @@ def test_read_user(user):
     db_user = crud.read_user(db=db, user_id=test_user.id)
     assert db_user.is_active == True
     assert db_user.email == 'test@domain.com'
-    assert db_user.hashed_password == 'secretnotreallyhashed'
+    assert crud.verify_password('secret', db_user.hashed_password) == True
 
 
 def test_read_user_by_email(user):
     db, _ = user
     db_user = crud.read_user_by_email(db=db, email='test@domain.com')
     assert db_user.is_active == True
-    assert db_user.hashed_password == 'secretnotreallyhashed'
+    assert crud.verify_password('secret', db_user.hashed_password) == True
 
 
 def test_read_users(user):

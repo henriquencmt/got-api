@@ -1,5 +1,5 @@
 run:
-	uvicorn src.main:app --reload
+	docker-compose up
 
 test:
 	pytest
