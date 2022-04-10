@@ -6,16 +6,15 @@ from sqlalchemy.orm import sessionmaker
 
 
 db_url = os.environ.get('DATABASE_URL')
-if db_url:
+if db_url: # pragma: no cover
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(db_url)
 else:
-    DB_HOST = os.environ.get('DB_HOST') or 'postgres'
-    DB_USER = os.environ.get('DB_USER') or 'postgres'
-    DB_PASSWORD = os.environ.get('DB_PASSWORD') or 'secret'
-
-DATABASE_URL = db_url or f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}"
-engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+        "sqlite:///./test.db",
+        connect_args={"check_same_thread": False}
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

@@ -14,6 +14,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_active: bool
+    scopes: str
 
     class Config:
         orm_mode = True
@@ -45,3 +46,13 @@ class House(HouseBase):
 
     class Config:
         orm_mode = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    scopes: List[str] = []

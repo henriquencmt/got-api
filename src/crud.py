@@ -1,11 +1,23 @@
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+
 def create_user(db: Session, user: schemas.UserCreate):
-    fake_hashed_password = user.password + "notreallyhashed"
-    db_user = models.User(email=user.email, hashed_password=fake_hashed_password)
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(email=user.email, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -36,10 +48,6 @@ def create_house(db: Session, house: schemas.HouseBase):
     db.commit()
     db.refresh(db_house)
     return db_house
-
-
-def read_house(db: Session, house_id: int):
-    return db.query(models.House).filter(models.House.id == house_id).first()
 
 
 def read_house_by_name(db: Session, name: str):
