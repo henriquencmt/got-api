@@ -1,11 +1,27 @@
-FROM python:3.8
+FROM python:3.8 as build
 
 WORKDIR /app
 
-COPY ./requirements.txt /app/requirements.txt
+RUN python3 -m venv venv
+ENV PATH="/app/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY ./requirements.txt .
 
-COPY ./src /app/src
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+COPY ./src ./src
+COPY ./tests ./tests
+
+RUN pytest
+
+
+FROM python:3.8-slim
+
+WORKDIR /app
+
+COPY --from=build /app/venv ./venv
+ENV PATH="/app/venv/bin:$PATH"
+
+COPY ./src ./src
 
 CMD uvicorn src.main:app --host 0.0.0.0 --port $PORT
